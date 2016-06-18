@@ -15,9 +15,9 @@ public void Main(string argument)
 {
     gGTS = GridTerminalSystem;
     SetupCPU();
-    IMyTextPanel output; // This is for a Text Display or LCD Panel to print to 
+    IMyTextPanel output;
     output = GridTerminalSystem.GetBlockWithName("LCD Panel") as IMyTextPanel; 
-    if( output == null ) throw new Exception( "LCD Panel block not found, check name ");
+    if( output == null ) throw new Exception( "LCD Panel block not found, check name");
     DisplayConsumablesLevel( output );
 }
 
@@ -102,7 +102,6 @@ public class BaseBlock
 
 public class Battery : BaseBlock
 {
-    // NOTE: This is also used for Hydrogen Tank blocks
     IMyBatteryBlock m_oBlock;
     public Battery( string oBlockName )
     {
