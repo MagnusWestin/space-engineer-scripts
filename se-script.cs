@@ -10,15 +10,24 @@ public void Save() {
 
 static public IMyProgrammableBlock gThisCPU;
 static public IMyGridTerminalSystem gGTS;
+static public float g_oLastMaxSolarPanelOutput = 0.0f;
+static public float g_oSecondLastMaxSolarPanelOutput = 0.0f;
 
 public void Main(string argument)
 {
     gGTS = GridTerminalSystem;
     SetupCPU();
-    IMyTextPanel output;
-    output = GridTerminalSystem.GetBlockWithName("LCD Panel") as IMyTextPanel; 
+    IMyTextPanel output = GridTerminalSystem.GetBlockWithName("LCD Panel Left") as IMyTextPanel; 
     if( output == null ) throw new Exception( "LCD Panel block not found, check name");
     DisplayConsumablesLevel( output );
+
+    output = GridTerminalSystem.GetBlockWithName("LCD Panel Right") as IMyTextPanel; 
+    if( output == null ) throw new Exception( "LCD Panel block not found, check name");
+    DisplaySolarPanelPower( output );
+
+    Rotor oRotor = new Rotor( "Advanced Rotor Solar" );
+    SolarPanel oPanel = new SolarPanel( "Solar Panel 1" );
+    RunSolarPanelAlignment( oRotor, oPanel );
 }
 
 // =================================================================================================
@@ -44,8 +53,37 @@ public void DisplayConsumablesLevel( IMyTextPanel oLCD )
         oText += "\n" + oBatteryList[ i ].CustomName + " Level (" + oBlock.GetRechargeStatus() + "): ";
     }
 
+    oText += "\n Power: " + g_oLastMaxSolarPanelOutput;
     oLCD.WritePublicText( oText ); 
     oLCD.ShowPublicTextOnScreen();
+}
+
+public void DisplaySolarPanelPower( IMyTextPanel oLCD )
+{
+    List< IMyTerminalBlock > oSolarPanelList = GetListOfBlocks< IMySolarPanel  >();
+    string oText = "";
+    for( int i = 0; i < oSolarPanelList.Count; i++ )
+    {
+        SolarPanel oPanel = new SolarPanel( oSolarPanelList[ i ] );
+        oText += "\n" + oPanel.GetCustomName() + ": " + String.Format( "{0:F1}", oPanel.GetMaxOutput() ) + " kW";
+    }
+
+    oLCD.WritePublicText( oText ); 
+    oLCD.ShowPublicTextOnScreen();
+}
+
+public void RunSolarPanelAlignment( Rotor oRotor, SolarPanel oSolarPanel )
+{
+    if( oSolarPanel.GetMaxOutput() < g_oLastMaxSolarPanelOutput )
+    {
+        oRotor.SetSpeed( 0.0f );
+    }
+    else
+    {
+        oRotor.SetSpeed( -0.2f );
+    }
+    g_oSecondLastMaxSolarPanelOutput = g_oLastMaxSolarPanelOutput;
+    g_oLastMaxSolarPanelOutput = oSolarPanel.GetMaxOutput();
 }
 
 // =================================================================================================
@@ -160,6 +198,61 @@ public class OxygenTank : BaseBlock
     }
 }
 
+public class Rotor : BaseBlock
+{
+    IMyMotorStator m_oBlock;
+    public Rotor( string oBlockName )
+    {
+        m_oBlock = gGTS.GetBlockWithName( oBlockName ) as IMyMotorStator;
+        if( m_oBlock == null )
+            throw new Exception( oBlockName + " block not found, check name" );
+        Init( m_oBlock );
+    }
+
+    public Rotor( IMyMotorStator oBlock ) : base( oBlock )
+    {
+        m_oBlock = oBlock;
+    }
+
+    public Rotor( IMyTerminalBlock oBlock ) : base( oBlock )
+    {
+        m_oBlock = (IMyMotorStator)oBlock;
+    }
+
+    public void SetSpeed( float oSpeed )
+    {
+        m_oBlock.SetValue( "Velocity", oSpeed );
+    }
+}
+
+public class SolarPanel : BaseBlock
+{
+    IMySolarPanel m_oBlock;
+    public SolarPanel( string oBlockName )
+    {
+        m_oBlock = gGTS.GetBlockWithName( oBlockName ) as IMySolarPanel;
+        if( m_oBlock == null )
+            throw new Exception( oBlockName + " block not found, check name" );
+        Init( m_oBlock );
+    }
+
+    public SolarPanel( IMySolarPanel oBlock ) : base( oBlock )
+    {
+        m_oBlock = oBlock;
+    }
+
+    public SolarPanel( IMyTerminalBlock oBlock ) : base( oBlock )
+    {
+        m_oBlock = (IMySolarPanel)oBlock;
+    }
+
+    public float GetMaxOutput()
+    {
+        return m_oBlock.MaxOutput * 1000;
+    }
+
+}
+
 // =================================================================================================
 // Utility Functions
 
@@ -170,6 +263,13 @@ public List< IMyTerminalBlock > GetListOfBlocksOnLocalGrid< T >()
     {
         return IsBlockOnLocalGrid( b, gGTS );
     });
+    return oList;
+}
+
+public List< IMyTerminalBlock > GetListOfBlocks< T >()
+{
+    List< IMyTerminalBlock > oList = new List< IMyTerminalBlock >();
+    GridTerminalSystem.GetBlocksOfType< T >( oList );
     return oList;
 }
 
