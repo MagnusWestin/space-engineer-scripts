@@ -1,8 +1,12 @@
+// The north pole is at 0,-60000,0 and the South pole is 0,60000,0. The sun rotates around the y axis of
+// the star system. Points on the equator are +/- 60000 on the x and z axis'. These points will be below
+// the surface by various depths due to the height map. If you line up with the center of the planet at
+// each point you can find each of these points right at the surface. 
 public Program()
 {
     // The constructor, called only once every session and always before any other method is called. Use it to
     // initialize your script. 
-    
+    //StartAllTimers();
 }
 
 public void Save() {
@@ -20,23 +24,27 @@ static public int g_oTickCount = 0;
 
 public void Main(string argument)
 {
-    Echo( argument + g_oTickCount );
+    Echo( argument + " tick: " + g_oTickCount );
     gts = GridTerminalSystem;
     g_oTickCount++;
     if( g_oTickCount > 100 )
         g_oTickCount = 0;
 
-    if( argument == "station" )
+    if( argument == "BA" )
     {
         RunStationCode( argument );
     }
-    else if( argument == "large-ship" )
+    else if( argument == "E1" )
     {
         RunLargeShipCode( argument );
     }
-    else if( argument == "con-ship" )
+    else if( argument == "A1" )
     {
         RunConstructionShipCode( argument );
+    }
+    else if( argument == "T2" )
+    {
+        RunT2Code( argument );
     }
     else
     {
@@ -46,43 +54,65 @@ public void Main(string argument)
     g_oFirstInit = true;
 }
 
-public void RunStationCode( string argument )
+public void RunT2Code( string argument )
 {
-    LcdPanel oLcdLeft  = new LcdPanel( "LCD Panel Left" );
-    LcdPanel oLcdRight = new LcdPanel( "LCD Panel Right" );
-    LcdPanel oLcdDebug = new LcdPanel( "LCD Panel Debug" );
+    LcdPanel oLcdLeft  = new LcdPanel( "T2 LCD Left" );
+    LcdPanel oLcdRight = new LcdPanel( "T2 LCD Right" );
     if( g_oFirstInit == false )
     {
         oLcdLeft.MakePublicTextActive();
         oLcdRight.MakePublicTextActive();
-        oLcdDebug.MakePublicTextActive();
     }
 
-    string oTextLcdLeft = DisplayConsumablesLevel();
-    oLcdLeft.UpdateText( oTextLcdLeft ); 
+    string oTextLcdLeft = GetScriptInfoAndTime( argument );
+    oTextLcdLeft += GetTickCountText();
+    oTextLcdLeft += "-----------------------------------\n";
 
+    oTextLcdLeft += "==== Energy ====\n";
+    oTextLcdLeft += GetBatteryInfo( argument );
+    oTextLcdLeft += GetReactorInfo();
+    oLcdLeft.UpdateText( oTextLcdLeft );
 
-    string oTextLcdRight = "== Solar Panels == ";
-    oTextLcdRight += DisplaySolarPanelPower( oTextLcdRight );
+    string oTextLcdRight = "==== CARGO ====\n" + GetCargoContainerInfo( 67000 );
+    oLcdRight.UpdateText( oTextLcdRight );
+}
 
-    oTextLcdRight += "\n== Power Usage ==";
-    //oTextLcdRight += DisplayPowerUsage( oTextLcdRight );
+public void RunStationCode( string argument )
+{
+    LcdPanel oLcd01  = new LcdPanel( "BA LCD Base Status" );
+    LcdPanel oLcdDebug = new LcdPanel( "BA LCD Debug" );
+    LcdPanel oLcdBatteryStatus = new LcdPanel( "BA LCD Battery Status" );
+    if( g_oFirstInit == false )
+    {
+        oLcd01.MakePublicTextActive();
+        oLcdDebug.MakePublicTextActive();
+        oLcdBatteryStatus.MakePublicTextActive();
+    }
 
-    Rotor oRotor = new Rotor( "Advanced Rotor Solar" );
-    SolarPanel oPanel = new SolarPanel( "Solar Panel Tracking" );
-    oTextLcdRight = RunSolarPanelAlignment( oRotor, oPanel, oTextLcdRight );
-    oLcdRight.UpdateText( oTextLcdRight ); 
+    string oTextLcd01 = DisplayConsumablesLevel();
+    oTextLcd01 += "\n== Solar Panels == ";
+ 	oTextLcd01 = DisplaySolarPanelPower( oTextLcd01 );
+    oLcd01.UpdateText( oTextLcd01 ); 
+
+    // Rotor oRotor = new Rotor( "Hab 1 Rotor Solar Track" );
+    // SolarPanel oPanel = new SolarPanel( "Hab 1 Solar Panel Tracking" );
+    // oTextLcdRight = RunSolarPanelAlignment( oRotor, oPanel, oTextLcdRight );
+    // oLcdRight.UpdateText( oTextLcdRight ); 
     
     string oTextDebug = GetScriptInfoAndTime( argument );
     oTextDebug += GetTickCountText();
-    oTextDebug += DebugOutput();
     oLcdDebug.UpdateText( oTextDebug );
+
+    Battery oBattery = new Battery( "BA Battery 1" );
+    string oLcdBatteryStatusText = "Status: " + oBattery.GetRechargeStatus();
+	oLcdBatteryStatusText = DisplaySolarPanelPower( oLcdBatteryStatusText );
+    oLcdBatteryStatus.UpdateText( oLcdBatteryStatusText );
 }
 
 public void RunLargeShipCode( string argument )
 {
-    LcdPanel oLcdLeft  = new LcdPanel( "Esc LCD Panel Left" );
-    LcdPanel oLcdRight = new LcdPanel( "Esc LCD Panel Right" );
+    LcdPanel oLcdLeft  = new LcdPanel( "Exp 1 LCD Panel Left" );
+    LcdPanel oLcdRight = new LcdPanel( "Exp 1 LCD Panel Right" );
     if( g_oFirstInit == false )
     {
         oLcdLeft.MakePublicTextActive();
@@ -91,6 +121,11 @@ public void RunLargeShipCode( string argument )
 
     string oTextLcdLeft = DisplayConsumablesLevel();
     oLcdLeft.UpdateText( oTextLcdLeft ); 
+
+    string oTextLcdRight = GetScriptInfoAndTime( argument );
+    oTextLcdRight += GetTickCountText();
+    oTextLcdRight += "-----------------------------------\n";
+    oLcdRight.UpdateText( oTextLcdRight ); 
 }
 
 public void RunConstructionShipCode( string argument )
@@ -105,12 +140,12 @@ public void RunConstructionShipCode( string argument )
         oLcdMiddle.MakePublicTextActive();
     }
 
-    string oTextLcdLeft = GetBatteryInfo();
+    string oTextLcdLeft = GetBatteryInfo( argument );
     oTextLcdLeft += "\n" + GetReactorInfo();
     oLcdLeft.UpdateText( oTextLcdLeft );
 
     string oTextLcdRight = GetTickCountText();
-    oTextLcdRight += "\n==== CARGO ====\n" + GetCargoContainerInfo();
+    oTextLcdRight += "\n==== CARGO ====\n" + GetCargoContainerInfo( 27000 );
     oLcdRight.UpdateText( oTextLcdRight );
 
     string oTextLcdMiddle = GetScriptInfoAndTime( argument );
@@ -119,7 +154,7 @@ public void RunConstructionShipCode( string argument )
 
 public string GetScriptInfoAndTime( string argument )
 {
-    string oText = "Script argument: \n" + argument + "\n";
+    string oText = "Script argument: " + argument + "\n";
     oText += "Time: " + System.DateTime.Now.ToString( "yyyy-MM-dd HH:mm" ) + "\n";
     return oText;
 }
@@ -127,13 +162,24 @@ public string GetScriptInfoAndTime( string argument )
 public string DebugOutput()
 {
     string oText = "\n==== DEBUG ====\n";
-    Battery oBat = new Battery( "Battery 1" );
+    Battery oBat = new Battery( "Hab 1 Battery 1" );
     oText += oBat.GetDetailedInfo();
     return oText;
 }
 
 // =================================================================================================
 // Application Code
+
+public void DumpOreIfEjectorIsOn( string oName )
+{
+    IMyFunctionalBlock oBlock = gts.GetBlockWithName( oName ) as IMyFunctionalBlock;
+    if( oBlock == null )
+        throw new Exception( oName + " block not found, check name" );
+    if( oBlock.Enabled == true )
+    {
+
+    }
+}
 
 public string DisplayConsumablesLevel()
 {
@@ -179,17 +225,21 @@ public string DisplaySolarPanelPower( string oText )
     return oText;
 }
 
-public string GetBatteryInfo()
+public string GetBatteryInfo( string oName )
 {
-    //List< IMyTerminalBlock > oBatteryList = GetListOfBlocksOnLocalGrid< IMyBatteryBlock  >();
-    Battery oBattery = new Battery( "Con Battery" );
-    float oPercent = oBattery.GetStoredPowerAsPercent();
-    string oText = "Battery:                " + String.Format( "{0:F1}", oPercent ) + "%\n";
-    oText += GetPercentMeter( oPercent );
+    List< IMyTerminalBlock > oBatteryList = GetListOfBlocksOnLocalGrid< IMyBatteryBlock  >();
+    string oText = "";
+    for( int i = 0; i < oBatteryList.Count; i++ )
+    {
+        Battery oBattery = new Battery( oBatteryList[ i ] );
+        float oPercent = oBattery.GetStoredPowerAsPercent();
+        oText += oBattery.GetCustomName() + ":                " + String.Format( "{0:F1}", oPercent ) + "%\n";
+        oText += GetPercentMeter( oPercent ) + "\n";
+    }
     return oText;
 }
 
-public string GetCargoContainerInfo()
+public string GetCargoContainerInfo( int oMaxMass )
 {
     List< IMyTerminalBlock > oContainerList = GetListOfBlocksOnLocalGrid< IMyCargoContainer >();
     string oText = "";
@@ -201,18 +251,24 @@ public string GetCargoContainerInfo()
         oText += GetPercentMeter( oInv.GetSpaceLeftAsPercent() ) + "\n";
         oTotalMass += oInv.GetMass();
     }
-    oText += "Total Mass: " + oTotalMass + " kg\nMax Mass: 27000 kg\n";
-    oText += GetPercentMeter( ( oTotalMass / 27000.0f ) * 100.0f );
+    oText += "-----------------------------------\n";
+    oText += "Total Mass: " + oTotalMass + " kg\nMax Mass: " + oMaxMass + " kg\n";
+    oText += GetPercentMeter( ( oTotalMass / (float)oMaxMass ) * 100.0f ) + "\n";
     return oText;
 }
 
 public string GetReactorInfo()
 {
-    Reactor oReactor = new Reactor( "Con Reactor" );
-    float oPercent = oReactor.GetOutputAsPercent();
-    string oText = "Reactor:                 " + String.Format( "{0:F1}", oPercent ) + "%\n";
-    oText += GetPercentMeter( oPercent );
-    oText += "\nUranium: " + oReactor.GetUraniumAmount();
+    List< IMyTerminalBlock > oReactorList = GetListOfBlocksOnLocalGrid< IMyReactor >();
+    string oText = "";
+    for( int i = 0; i < oReactorList.Count; i++ )
+    {
+        Reactor oReactor = new Reactor( oReactorList[ i ] );
+        float oPercent = oReactor.GetOutputAsPercent();
+        oText += oReactor.GetCustomName() + ":                 " + String.Format( "{0:F1}", oPercent ) + "%\n";
+        oText += GetPercentMeter( oPercent );
+        oText += "\nUranium: " + oReactor.GetUraniumAmount() + "\n";
+    }
     return oText;
 }
 
@@ -352,20 +408,35 @@ public class Battery : BaseBlock
             return "Normal";
     }
 
+    public float GetMaxPowerAsFloat()
+    {
+        string oText = GetDetailedInfoValue( "Max Stored Power" );
+        string[] oValues = oText.Split( ' ' );
+        float oValue = 0.0f;
+        float.TryParse( oValues[ 0 ], out oValue );
+        float oPow = (float)Math.Pow( 1000.0f, ".kMGTPEZY".IndexOf( oValues[ 1 ].Substring( 0, 1 ) ) );
+        return oValue * oPow;
+    }
+
     public string GetStoredPowerAsText()
     {
         return GetDetailedInfoValue( "Stored power" );
     }
 
+    public float GetStoredPowerAsFloat()
+    {
+        string oText = GetDetailedInfoValue( "Stored power" );
+        string[] oValues = oText.Split( ' ' );
+        float oValue = 0.0f;
+        float.TryParse( oValues[ 0 ], out oValue );
+        float oPow = (float)Math.Pow( 1000.0f, ".kMGTPEZY".IndexOf( oValues[ 1 ].Substring( 0, 1 ) ) );
+        return oValue * oPow;
+    }
+
     public float GetStoredPowerAsPercent()
     {
-        string oStoredPowerString = GetDetailedInfoValue( "Stored power" );
-        string oMaxPowerString = GetDetailedInfoValue( "Max Stored Power" );
-        float oStoredPower = 0.0f;
-        float oMaxPower = 0.0f;
-        float.TryParse( oStoredPowerString.Split( ' ' )[ 0 ], out oStoredPower );
-        float.TryParse( oMaxPowerString.Split( ' ' )[ 0 ], out oMaxPower );
-        
+        float oStoredPower = GetStoredPowerAsFloat();
+        float oMaxPower = GetMaxPowerAsFloat();
         float oPercent = ( oStoredPower / oMaxPower ) * 100.0f;
         return oPercent;
     }
@@ -573,7 +644,7 @@ public class SolarPanel : BaseBlock
 // =================================================================================================
 // Utility Functions
 
-public List< IMyTerminalBlock > GetListOfBlocksOnLocalGrid< T >()
+public List< IMyTerminalBlock > GetListOfBlocksOnLocalGrid< T >() where T: class
 {
     List< IMyTerminalBlock > oList = new List< IMyTerminalBlock >();
     gts.GetBlocksOfType< T >( oList, delegate( IMyTerminalBlock b )
@@ -583,17 +654,28 @@ public List< IMyTerminalBlock > GetListOfBlocksOnLocalGrid< T >()
     return oList;
 }
 
-// public List< IMyTerminalBlock > GetListOfBlocksThatStartWith< T >( string oPrefix )
-// {
-//     List< IMyTerminalBlock > oList = new List< IMyTerminalBlock >();
-//     gts.GetBlocksOfType< T >( oList, delegate( IMyTerminalBlock b )
-//     {
-//         return b.CustomName.StartsWith( oPrefix );
-//     }) => oPrefix;
-//     return oList;
-// }
+public List< IMyTerminalBlock > GetListOfBlocksThatStartWith< T >( string oPrefix ) where T: class
+{
+    List< IMyTerminalBlock > oList = new List< IMyTerminalBlock >();
+    List< IMyTerminalBlock > oListResult = new List< IMyTerminalBlock >();
+    gts.GetBlocksOfType< T >( oList );
+    for( int i = 0; i < oList.Count; i++ )
+    {
+        if( oList[ i ].CustomName.StartsWith( oPrefix ) == true )
+        {
+            oListResult.Add( oList[ i ] );
+        }
+    }
 
-public List< IMyTerminalBlock > GetListOfBlocks< T >()
+    // }
+    // gts.GetBlocksOfType< T >( oList, delegate( IMyTerminalBlock b )
+    // {
+    //     return b.CustomName.StartsWith( oPrefix );
+    // } );
+    return oListResult;
+}
+
+public List< IMyTerminalBlock > GetListOfBlocks< T >() where T: class
 {
     List< IMyTerminalBlock > oList = new List< IMyTerminalBlock >();
     gts.GetBlocksOfType< T >( oList );
@@ -635,6 +717,17 @@ static public string GetPercentMeter( float oPercent )
         string oTemp = new String( '\'', oTheRest );
         oData = "[" + oData + oTemp + "] ";
         return oData;
+    }
+}
+
+public void StartAllTimers()
+{
+    List< IMyTerminalBlock > oList = GetListOfBlocks< IMyTimerBlock >();
+    for( int i = 0; i < oList.Count; i++ )
+    {
+        IMyTimerBlock oTimer = (IMyTimerBlock)oList[ i ];
+        if( oTimer.IsCountingDown == false )
+            oTimer.ApplyAction("Start");
     }
 }
 
