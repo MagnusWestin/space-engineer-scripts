@@ -2,6 +2,9 @@
 // the star system. Points on the equator are +/- 60000 on the x and z axis'. These points will be below
 // the surface by various depths due to the height map. If you line up with the center of the planet at
 // each point you can find each of these points right at the surface. 
+
+// LCD font size is 0.6
+
 public Program()
 {
     // The constructor, called only once every session and always before any other method is called. Use it to
@@ -21,6 +24,7 @@ static public IMyGridTerminalSystem gts = null;
 static public int g_oSolarPanelTrackingMode = 0;
 static public int g_oRestingCount = 0;
 static public int g_oTickCount = 0;
+static public Vector3D g_oPosition = new Vector3D( 0, 0, 0 );
 
 public void Main(string argument)
 {
@@ -34,17 +38,17 @@ public void Main(string argument)
     {
         RunStationCode( argument );
     }
-    else if( argument == "E1" )
+    else if( argument == "L1" )
     {
         RunLargeShipCode( argument );
     }
-    else if( argument == "A1" )
+    else if( argument == "S1" || argument == "S2" || argument == "S3" )
     {
-        RunConstructionShipCode( argument );
+        RunSmallShipCode( argument );
     }
-    else if( argument == "T2" )
+    else if( argument == "AtmoMiner" )
     {
-        RunT2Code( argument );
+        RunAMCode( argument );
     }
     else
     {
@@ -54,10 +58,10 @@ public void Main(string argument)
     g_oFirstInit = true;
 }
 
-public void RunT2Code( string argument )
+public void RunAMCode( string argument )
 {
-    LcdPanel oLcdLeft  = new LcdPanel( "T2 LCD Left" );
-    LcdPanel oLcdRight = new LcdPanel( "T2 LCD Right" );
+    LcdPanel oLcdLeft  = new LcdPanel( "AM LCD Left" );
+    LcdPanel oLcdRight = new LcdPanel( "AM LCD Right" );
     if( g_oFirstInit == false )
     {
         oLcdLeft.MakePublicTextActive();
@@ -73,7 +77,7 @@ public void RunT2Code( string argument )
     oTextLcdLeft += GetReactorInfo();
     oLcdLeft.UpdateText( oTextLcdLeft );
 
-    string oTextLcdRight = "==== CARGO ====\n" + GetCargoContainerInfo( 67000 );
+    string oTextLcdRight = "==== CARGO ====\n" + GetCargoContainerInfo( 170000 );
     oLcdRight.UpdateText( oTextLcdRight );
 }
 
@@ -111,28 +115,36 @@ public void RunStationCode( string argument )
 
 public void RunLargeShipCode( string argument )
 {
-    LcdPanel oLcdLeft  = new LcdPanel( "Exp 1 LCD Panel Left" );
-    LcdPanel oLcdRight = new LcdPanel( "Exp 1 LCD Panel Right" );
+    LcdPanel oLcdLeft  = new LcdPanel( "L1-LCD Panel Left" );
+    LcdPanel oLcdRight = new LcdPanel( "L1-LCD Panel Right" );
+    LcdPanel oLcdOre = new LcdPanel( "L1-LCD Panel Ore" );
     if( g_oFirstInit == false )
     {
         oLcdLeft.MakePublicTextActive();
         oLcdRight.MakePublicTextActive();
+        oLcdOre.MakePublicTextActive();
     }
 
     string oTextLcdLeft = DisplayConsumablesLevel();
+    oTextLcdLeft += "\n\n" + GetReactorInfo();
     oLcdLeft.UpdateText( oTextLcdLeft ); 
 
     string oTextLcdRight = GetScriptInfoAndTime( argument );
     oTextLcdRight += GetTickCountText();
     oTextLcdRight += "-----------------------------------\n";
+    oTextLcdRight += String.Format( "Speed : {0,6:F1} m/s\n", GetSpeed() );
+    //oTextLcdRight += String.Format( "Height: {0,6:F1} m\n", GetHeight() );
     oLcdRight.UpdateText( oTextLcdRight ); 
+
+    string oTextLcdOre = GetOreAmount();
+    oLcdOre.UpdateText( oTextLcdOre );     
 }
 
-public void RunConstructionShipCode( string argument )
+public void RunSmallShipCode( string argument )
 {
-    LcdPanel oLcdLeft  = new LcdPanel( "Con LCD Left" );
-    LcdPanel oLcdRight = new LcdPanel( "Con LCD Right" );
-    LcdPanel oLcdMiddle = new LcdPanel( "Con LCD Middle" );
+    LcdPanel oLcdLeft  = new LcdPanel( argument + "LCD Left" );
+    LcdPanel oLcdRight = new LcdPanel( argument + "LCD Right" );
+    LcdPanel oLcdMiddle = new LcdPanel( argument + "LCD Middle" );
     if( g_oFirstInit == false )
     {
         oLcdLeft.MakePublicTextActive();
@@ -145,7 +157,7 @@ public void RunConstructionShipCode( string argument )
     oLcdLeft.UpdateText( oTextLcdLeft );
 
     string oTextLcdRight = GetTickCountText();
-    oTextLcdRight += "\n==== CARGO ====\n" + GetCargoContainerInfo( 27000 );
+    oTextLcdRight += "\n==== CARGO ====\n" + GetCargoContainerInfo( 28000 );
     oLcdRight.UpdateText( oTextLcdRight );
 
     string oTextLcdMiddle = GetScriptInfoAndTime( argument );
@@ -188,9 +200,9 @@ public string DisplayConsumablesLevel()
     for( int i = 0; i < oOxygenList.Count; i++ )
     {
         OxygenTank oOxygen = new OxygenTank( oOxygenList[ i ] );
-        oText += "\n" + oOxygen.GetCustomName() + " level:";
+        oText += oOxygen.GetCustomName() + " level:";
         oText += "\n" + GetPercentMeter( oOxygen.GetLevel() ) 
-                                      + String.Format( "{0:F1}", oOxygen.GetLevel() ) + "%";
+                                      + String.Format( "{0:F1}", oOxygen.GetLevel() ) + "%\n";
     }
 
 
@@ -233,8 +245,8 @@ public string GetBatteryInfo( string oName )
     {
         Battery oBattery = new Battery( oBatteryList[ i ] );
         float oPercent = oBattery.GetStoredPowerAsPercent();
-        oText += oBattery.GetCustomName() + ":                " + String.Format( "{0:F1}", oPercent ) + "%\n";
-        oText += GetPercentMeter( oPercent ) + "\n";
+        oText += oBattery.GetCustomName() + "\n";
+        oText += GetPercentMeter( oPercent ) + String.Format( " {0:F1}%\n", oPercent );
     }
     return oText;
 }
@@ -247,14 +259,173 @@ public string GetCargoContainerInfo( int oMaxMass )
     for( int i = 0; i < oContainerList.Count; i++ )
     {
         CargoContainer oInv = new CargoContainer( oContainerList[ i ] );
-        oText += oInv.GetCustomName() + ": " + String.Format( "{0:F1}", oInv.GetSpaceLeftAsPercent() ) + "%\n";
-        oText += GetPercentMeter( oInv.GetSpaceLeftAsPercent() ) + "\n";
+        oText += oInv.GetCustomName() + "\n";
+        oText += GetPercentMeter( oInv.GetSpaceLeftAsPercent() ) + String.Format( " {0:F1}%\n", oInv.GetSpaceLeftAsPercent() );
         oTotalMass += oInv.GetMass();
     }
-    oText += "-----------------------------------\n";
+    oText += "----------------------------\n";
     oText += "Total Mass: " + oTotalMass + " kg\nMax Mass: " + oMaxMass + " kg\n";
     oText += GetPercentMeter( ( oTotalMass / (float)oMaxMass ) * 100.0f ) + "\n";
     return oText;
+}
+
+public string GetOreAmount()
+{
+    StringBuilder displaytext = new StringBuilder();
+
+    // get all attached inventories in a list
+    List<IMyInventory> inventories = GetInventoryItems();
+
+    // get list of materials to look at
+    List<rawMaterial> rawMaterials = buildRawMaterialList(); 
+
+    // loop through all inventories and add up the material amounts 
+    rawMaterials = addAmountsToMaterialsList( inventories, rawMaterials );
+
+    for( int i = 0; i < rawMaterials.Count; ++i )
+    {
+        displaytext.Append( rawMaterials[ i ].GetString() + "\n");
+    }
+    return displaytext.ToString();
+}
+
+
+// This function looks through all blocks in the system and returns all inventories within
+public List<IMyInventory> GetInventoryItems()
+{
+    List<IMyTerminalBlock> allBlocks = new List<IMyTerminalBlock>(); //capture all blocks
+    GridTerminalSystem.GetBlocks( allBlocks ); 
+    List<IMyTerminalBlock> inventoryBlocks = new List<IMyTerminalBlock>(); // all blocks w/ inventories
+    List<IMyInventory> inventories = new List<IMyInventory>(); //actual inventories
+
+    // look for all blocks that have inventory
+    for( int x = 0; x < allBlocks.Count; ++x )
+    {
+        if( allBlocks[ x ].HasInventory() == true ) //it's an inventory block
+        {
+           inventoryBlocks.Add( allBlocks[ x ] );
+        }
+    }
+
+    // add all inventories to the list
+    for( int i = 0; i < inventoryBlocks.Count; i++ )
+    {
+        // all blocks in this group have inventories, so add the first          
+        inventories.Add( inventoryBlocks[ i ].GetInventory( 0 ) );
+
+        // if more than one inventory, add the 2nd
+        if (inventoryBlocks[i].GetInventoryCount() > 1)
+        {
+            IMyInventory inventory = inventoryBlocks[i].GetInventory(1);
+            inventories.Add(inventory);
+        }
+    }
+    return inventories;
+}
+
+// This function builds raw material objects based on the base materials in the game
+// and puts them in a list
+public List<rawMaterial> buildRawMaterialList()
+{
+    var materials = new List< rawMaterial >();
+    materials.Add( new rawMaterial( "Stone",         "Gravel   ", 0, 0 ) );
+    materials.Add( new rawMaterial( "Ice",           "Ice      ", 0, 0 ) );
+    materials.Add( new rawMaterial( "Iron Ore",      "Iron     ", 0, 0 ) );
+    materials.Add( new rawMaterial( "Silicon Ore",   "Silicon  ", 0, 0 ) );
+    materials.Add( new rawMaterial( "Nickel Ore",    "Nickel   ", 0, 0 ) );
+    materials.Add( new rawMaterial( "Cobalt Ore",    "Cobalt   ", 0, 0 ) );
+    materials.Add( new rawMaterial( "Silver Ore",    "Silver   ", 0, 0 ) );
+    materials.Add( new rawMaterial( "Gold Ore",      "Gold     ", 0, 0 ) );
+    materials.Add( new rawMaterial( "Magnesium Ore", "Magnesium", 0, 0 ) );
+    materials.Add( new rawMaterial( "Uranium Ore",   "Uranium  ", 0, 0 ) );
+    materials.Add( new rawMaterial( "Platinum Ore",  "Platinum ", 0, 0 ) );
+
+    return materials;
+}
+
+// This function takes in a group of inventories and adds quantity of materials to the list
+public List<rawMaterial> addAmountsToMaterialsList(List<IMyInventory> inventories, List<rawMaterial> rawMaterials)
+{
+    for (int i = 0; i < inventories.Count; i++)
+    {
+        // get all items in the inventory item
+        List<IMyInventoryItem> items = inventories[i].GetItems();
+
+        // for each item in this inventory
+        for (int j = 0; j < items.Count; j++)
+        {
+            // check the item to see if it matches up with a raw material
+            for (int k = 0; k < rawMaterials.Count; k++)
+            {
+                // check the current item and see if its a refined material, if so, add the current quantity to the materials list
+                if( items[ j ].Content.SubtypeName.Contains( rawMaterials[ k ].GetMaterialName() ) && items[ j ].Content.ToString().Contains( "Ore" ) )
+                {
+                    rawMaterials[k] = rawMaterials[k].UpdateRawAmount((double) items[j].Amount);
+                }
+
+                // check the current item and see if its a refined material, if so, add the current quantity to the materials list
+                if( items[ j ].Content.SubtypeName.Contains( rawMaterials[ k ].GetMaterialName() ) && items[ j ].Content.ToString().Contains( "Ingot" ) )
+                {
+                    rawMaterials[k] = rawMaterials[k].UpdateRefinedAmount((double)items[j].Amount);
+                }
+            }
+        }
+    }
+    return rawMaterials;
+}
+
+// This class represents an ore/ingot pair of materials
+// i.e. Stone - Gravel
+// it allows for calculating the conversion from stone to gravel (via a refinery)
+// so that this information can be used elsewhere
+public struct rawMaterial
+{
+    public string rawMaterialName;
+    public string refinedMaterialName;
+    public double rawMaterialAmount;
+    public double refinedMaterialAmount;
+    public rawMaterial(string rawMaterial, string refinedMaterial, double rawAmount, double refinedAmount)
+    {
+        rawMaterialName = rawMaterial;
+        refinedMaterialName = refinedMaterial;
+        rawMaterialAmount = rawAmount;
+        refinedMaterialAmount = refinedAmount;
+        }
+
+    // Returns details about the object in a nicely formatted string
+    // ex. Stone : 123 -- Gravel : 1234 Total : 123543
+    public String GetString()
+    {
+        //return refinedMaterialName + ": " + Math.Round(rawMaterialAmount, 2) + " | " + Math.Round( refinedMaterialAmount, 2 );
+        return String.Format( "{0}: {1,10:F2}    | {2,10:F2}", refinedMaterialName, rawMaterialAmount, refinedMaterialAmount );
+    }
+
+    // Gets the "name of the material" excluding ore/ingot descriptor
+    public String GetMaterialName()
+    {
+        String name = rawMaterialName;
+        if (rawMaterialName.IndexOf(" ") > 0)
+        {
+            name = rawMaterialName.Substring(0, rawMaterialName.IndexOf(" "));
+        }
+        return name;
+    }
+
+    // Creates a new copy of the structure with the updated raw material amount
+    public rawMaterial UpdateRawAmount(double updateAmount)
+    {
+        double updatedAmount = updateAmount + rawMaterialAmount;
+        rawMaterial newMaterial = new rawMaterial(rawMaterialName, refinedMaterialName, updatedAmount, refinedMaterialAmount );
+        return newMaterial;
+    }
+
+    // Creates a new copy of the structure with the updated refined material amount
+    public rawMaterial UpdateRefinedAmount(double updateAmount)
+    {
+        double updatedAmount = updateAmount + refinedMaterialAmount;
+        rawMaterial newMaterial = new rawMaterial(rawMaterialName, refinedMaterialName, rawMaterialAmount, updatedAmount );
+        return newMaterial;
+    }
 }
 
 public string GetReactorInfo()
@@ -265,9 +436,9 @@ public string GetReactorInfo()
     {
         Reactor oReactor = new Reactor( oReactorList[ i ] );
         float oPercent = oReactor.GetOutputAsPercent();
-        oText += oReactor.GetCustomName() + ":                 " + String.Format( "{0:F1}", oPercent ) + "%\n";
-        oText += GetPercentMeter( oPercent );
-        oText += "\nUranium: " + oReactor.GetUraniumAmount() + "\n";
+        oText += oReactor.GetCustomName() + " Power output:\n";
+        oText += GetPercentMeter( oPercent ) + String.Format( " {0:F1}", oPercent ) + "%\n";;
+        oText += "Uranium: " + oReactor.GetUraniumAmount() + "\n";
     }
     return oText;
 }
@@ -682,6 +853,12 @@ public List< IMyTerminalBlock > GetListOfBlocks< T >() where T: class
     return oList;
 }
 
+public int GetHeight()
+{
+    // cant implement
+    return 0;
+}
+
 static public float GetItemAmountInInventory( IMyInventory oInventory, string oType, string oSubType )
 {
     int oIndex = -1;
@@ -704,20 +881,30 @@ static public float GetItemAmountInInventory( IMyInventory oInventory, string oT
 
 static public string GetPercentMeter( float oPercent )
 {
-    int oFilledBars = (int)( oPercent / 2 );
-    string oData = new String( '|', oFilledBars );
+    int oFilledBars = (int)( oPercent / 4 );
+    string oData = new String( (char)0x2588, oFilledBars );
 
-    int oTheRest = 50 - oFilledBars;
-    if( ( oTheRest + oFilledBars ) > 50 || ( oTheRest < 0 ) )
+    int oTheRest = 25 - oFilledBars;
+    if( ( oTheRest + oFilledBars ) > 25 || ( oTheRest < 0 ) )
     {
        return ("oFilledBars = " + oFilledBars.ToString() + "; oTheRest = " + oTheRest.ToString());
     }
     else
     {
-        string oTemp = new String( '\'', oTheRest );
-        oData = "[" + oData + oTemp + "] ";
+        string oTemp = new String( (char)0x2591, oTheRest );
+        oData = "[" + oData + oTemp + "]";
         return oData;
     }
+}
+
+
+public double GetSpeed()
+{
+    Vector3D oCurrentPos = Me.GetPosition(); // the position of this programmable block
+    double speed = ( ( oCurrentPos - g_oPosition ) * 60 ).Length(); // how far the PB has moved since the last run (1/60s ago)
+    g_oPosition = oCurrentPos; // update the global variable, which will be used on the next run
+
+    return speed;
 }
 
 public void StartAllTimers()
